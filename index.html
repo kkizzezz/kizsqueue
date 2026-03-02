@@ -387,8 +387,9 @@
       } catch (error) {
         console.error("Error fetching data:", error);
         container.innerHTML = `
-          <div class="text-center py-16 bg-red-50 rounded-2xl border border-red-200 border-dashed">
-            <p class="text-red-500 font-medium">${t.error}</p>
+          <div class="text-center py-16 bg-red-50 rounded-2xl border border-red-200 border-dashed p-6">
+            <p class="text-red-500 font-medium text-lg mb-2">${t.error}</p>
+            <p class="text-red-400 text-sm font-mono bg-white/50 py-2 px-4 rounded inline-block">${error.message}</p>
           </div>
         `;
         document.getElementById('lastUpdatedText').innerText = t.error;
@@ -407,19 +408,24 @@
 
     function sortData(data) {
       return data.sort((a, b) => {
+        const dateA = a.date ? new Date(a.date) : new Date(0);
+        const dateB = b.date ? new Date(b.date) : new Date(0);
+        const deadlineA = a.deadline ? new Date(a.deadline) : null;
+        const deadlineB = b.deadline ? new Date(b.deadline) : null;
+
         switch (currentSort) {
           case 'date_desc':
-            return new Date(b.date) - new Date(a.date);
+            return dateB - dateA;
           case 'date_asc':
-            return new Date(a.date) - new Date(b.date);
+            return dateA - dateB;
           case 'deadline_asc':
-            if (!a.deadline) return 1;
-            if (!b.deadline) return -1;
-            return new Date(a.deadline) - new Date(b.deadline);
+            if (!deadlineA) return 1;
+            if (!deadlineB) return -1;
+            return deadlineA - deadlineB;
           case 'deadline_desc':
-            if (!a.deadline) return 1;
-            if (!b.deadline) return -1;
-            return new Date(b.deadline) - new Date(a.deadline);
+            if (!deadlineA) return 1;
+            if (!deadlineB) return -1;
+            return deadlineB - deadlineA;
           case 'name_asc':
             return (a.clientName || '').localeCompare(b.clientName || '');
           case 'name_desc':
@@ -460,8 +466,21 @@
       const locale = currentLang === 'th' ? 'th-TH' : 'en-GB';
 
       filtered.forEach(item => {
-        const orderDateStr = item.date ? new Date(item.date).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
-        const deadlineStr = item.deadline ? new Date(item.deadline).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }) : t.noDeadline;
+        let orderDateStr = '-';
+        if (item.date) {
+          const d = new Date(item.date);
+          if (!isNaN(d.getTime())) {
+            orderDateStr = d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+          }
+        }
+
+        let deadlineStr = t.noDeadline;
+        if (item.deadline) {
+          const d = new Date(item.deadline);
+          if (!isNaN(d.getTime())) {
+            deadlineStr = d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+          }
+        }
         
         const config = STATUS_CONFIG[item.status] || STATUS_CONFIG["รอชำระมัดจำ"];
         const itemNames = item.items && item.items.length > 0 ? item.items.map(i => i.name).join(', ') : t.noItemsList;
