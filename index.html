@@ -172,7 +172,7 @@
   </div>
 
   <script>
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxSFY9zHlnCIr1b_4Oh2-S44xgj3y8B7GiYBomj_u7BZ501NNKmmB2TnXnnvR0drYND/exec";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbj1boAds0dWXWAScmnmZWLodgunYT7ee8JLk8zwEUmcBQHe4vS9WBRKR7VWEfEvPz/exec";
 
     const STATUS_CONFIG = {
       "รอชำระมัดจำ": { color: "bg-gray-100 text-gray-700 border-gray-200", progressColor: "bg-gray-400", progress: 0 },
@@ -319,8 +319,8 @@
       if (!lastUpdatedDate) return;
       const t = translations[currentLang];
       const locale = currentLang === 'th' ? 'th-TH' : 'en-GB';
-      const timeStr = lastUpdatedDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-      const dateStr = lastUpdatedDate.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+      const timeStr = lastUpdatedDate.toLocaleTimeString(locale, { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });
+      const dateStr = lastUpdatedDate.toLocaleDateString(locale, { timeZone: 'Asia/Bangkok', day: 'numeric', month: 'short', year: 'numeric' });
       document.getElementById('lastUpdatedText').innerText = `${t.lastUpdated} ${dateStr} ${timeStr}`;
     }
 
@@ -356,11 +356,19 @@
         
         allQueueData = [...(data.queue || []), ...(data.archive || [])];
         
-        // Find the latest date from the data to show as "Last Updated"
-        // We use the 'date' field (order date) as a proxy for activity
-        if (allQueueData.length > 0) {
+        // Find the latest date to show as "Last Updated"
+        // Priority: 
+        // 1. Global 'lastUpdated' from API response
+        // 2. Max of 'lastUpdated' or 'timestamp' from items
+        // 3. Max of 'date' (order date) from items
+        if (data.lastUpdated) {
+          lastUpdatedDate = new Date(data.lastUpdated);
+        } else if (allQueueData.length > 0) {
           const dates = allQueueData
-            .map(item => item.date ? new Date(item.date) : null)
+            .map(item => {
+              const d = item.lastUpdated || item.timestamp || item.date;
+              return d ? new Date(d) : null;
+            })
             .filter(d => d && !isNaN(d.getTime()));
           
           if (dates.length > 0) {
